@@ -1,0 +1,38 @@
+name: app_fichar
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase (versiones compatibles entre sí)
+  firebase_core: ^2.25.0
+  firebase_auth: ^4.17.2
+  cloud_firestore: ^4.15.2
+  
+
+  # Utilidades
+  intl: ^0.18.1
+  provider: ^6.1.2
+  google_sign_in: ^6.1.4
+  timezone: ^0.9.2
+  lottie: ^2.7.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/lottie/login_animation.json
+    - assets/lottie/splash_animation.json
+    # Puedes añadir más rutas si lo necesitas, por ejemplo:
+    # - assets/images/
+    # - assets/animations/
