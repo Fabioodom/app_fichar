@@ -34,6 +34,7 @@ class AdminScreen extends StatelessWidget {
       userStats.add({
         'userId': userDoc.id,
         'email': userDoc.data()['email'] ?? '(sin email)',
+        'name': userDoc.data()['name'] ?? '(sin nombre)',
         'totalHours': (totalMinutes / 60).toStringAsFixed(2),
         'lastWorkDate': lastDate != null
             ? DateFormat('yyyy-MM-dd – kk:mm').format(lastDate)
@@ -90,11 +91,14 @@ class AdminScreen extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text(user['email']),
+                  leading: CircleAvatar(
+                    child: Text(user['name'].toString().substring(0, 1).toUpperCase()),
+                  ),
+                  title: Text(user['name']),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text('Correo: ${user['email']}'),
                       Text('Total de horas: ${user['totalHours']}'),
                       Text('Último fichaje: ${user['lastWorkDate']}'),
                     ],
