@@ -1,4 +1,4 @@
-#Wed Mar 26 19:02:08 CET 2025
+#Thu Mar 27 13:05:48 CET 2025
 base.0=C\:\\Users\\fabio\\Documents\\Flutter App\\fabi\\appFichar\\app_fichar\\build\\app\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
 base.1=C\:\\Users\\fabio\\Documents\\Flutter App\\fabi\\appFichar\\app_fichar\\build\\app\\intermediates\\dex\\debug\\mergeLibDexDebug\\0\\classes.dex
 base.2=C\:\\Users\\fabio\\Documents\\Flutter App\\fabi\\appFichar\\app_fichar\\build\\app\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex

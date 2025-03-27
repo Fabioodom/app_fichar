@@ -51,6 +51,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final madrid = tz.getLocation('Europe/Madrid');
     return tz.TZDateTime.from(utc, madrid);
   }
+  Future<String?> mostrarDialogoTrabajo() async {
+  TextEditingController mensajeController = TextEditingController();
+  return await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Escribe lo que has hecho"),
+      content: TextField(
+        controller: mensajeController,
+        maxLines: 3,
+        decoration: const InputDecoration(
+          hintText: "Ejemplo: Finalicé el informe de ventas...",
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null), // Cierra sin guardar
+          child: const Text("Cancelar"),
+        ),
+        TextButton(
+          onPressed: () {
+            String mensaje = mensajeController.text.trim();
+            if (mensaje.isNotEmpty) {
+              Navigator.pop(context, mensaje);
+            }
+          },
+          child: const Text("Guardar y fichar salida"),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<void> cargarNombreUsuario() async {
     final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
@@ -123,6 +154,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> ficharSalida() async {
+  String? mensajeSalida = await mostrarDialogoTrabajo(); // Mostrar diálogo antes de salir
+
+  if (mensajeSalida != null && mensajeSalida.isNotEmpty) {
     final endTime = convertirHoraLocal(DateTime.now().toUtc());
     final duration = endTime.difference(startTime!).inMinutes;
 
@@ -139,6 +173,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await query.docs.first.reference.update({
         'endTime': endTime,
         'duration': duration,
+        'workSummary': mensajeSalida, // Guardar el mensaje en Firestore
       });
     }
 
@@ -152,6 +187,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     await cargarResumenTrabajo();
   }
+}
+
 
   Future<void> cerrarSesion() async {
     detenerContador();
