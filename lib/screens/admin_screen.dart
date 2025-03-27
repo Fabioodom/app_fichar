@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../theme.dart';
 import 'login_screen.dart';
+import 'user_reports_screen.dart'; // Importar la nueva pantalla
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
@@ -45,7 +46,6 @@ class AdminScreen extends StatelessWidget {
     return userStats;
   }
 
-  /// Cerrar sesión
   Future<void> _cerrarSesion(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     if (context.mounted) {
@@ -103,6 +103,17 @@ class AdminScreen extends StatelessWidget {
                       Text('Último fichaje: ${user['lastWorkDate']}'),
                     ],
                   ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserReportsScreen(
+                          userId: user['userId'],
+                          userName: user['name'],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               );
             },
