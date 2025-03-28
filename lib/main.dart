@@ -46,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToAuth() async {
-    await Future.delayed(const Duration(seconds: 3)); // Tiempo de animación
+    await Future.delayed(const Duration(seconds: 2)); // Tiempo de animación
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const AuthWrapper()),
     );
