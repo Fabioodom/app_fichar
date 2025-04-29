@@ -1,0 +1,28 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.sidlatau.flutteremailsender" >
+4
+5    <uses-sdk android:minSdkVersion="16" />
+6
+7    <application>
+7-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:2:5-12:19
+8        <provider
+8-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:3:9-11:20
+9            android:name="com.sidlatau.flutteremailsender.FlutterEmailSenderFileProvider"
+9-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:4:13-90
+10            android:authorities="${applicationId}.file_provider"
+10-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:5:13-65
+11            android:exported="false"
+11-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:6:13-37
+12            android:grantUriPermissions="true" >
+12-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:7:13-47
+13            <meta-data
+13-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:8:13-10:61
+14                android:name="android.support.FILE_PROVIDER_PATHS"
+14-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:9:17-67
+15                android:resource="@xml/shared_file_paths" />
+15-->C:\Users\fabio\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_email_sender-7.0.0\android\src\main\AndroidManifest.xml:10:17-58
+16        </provider>
+17    </application>
+18
+19</manifest>
