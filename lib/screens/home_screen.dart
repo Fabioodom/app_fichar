@@ -31,6 +31,9 @@ import 'package:url_launcher/url_launcher.dart';
 // Crear fichero temporal en móvil
 import 'package:path_provider/path_provider.dart';
 
+//Persistencia de datos
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int minutosSemana = 0;
   final int objetivoDiarioMinutos = 480;
   final int objetivoSemanalMinutos = 2400;
+  late Stream<QuerySnapshot> tareasStream;
 
   AnimationController? _successController;
   final userId = FirebaseAuth.instance.currentUser!.uid;
@@ -57,18 +61,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _ausenciaNotificado = false;
 
   @override
-  void initState() {
-    super.initState();
-    tz.initializeTimeZones();
-    _successController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    cargarNombreUsuario();
-    cargarResumenTrabajo().then((_) {
-      _chequearAusencia();
-    });
-  }
+void initState() {
+  super.initState();
+  tz.initializeTimeZones();
+  _successController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  );
+  cargarNombreUsuario();
+  _restaurarEstadoTrabajo();
+  cargarResumenTrabajo().then((_) {
+    _chequearAusencia();
+  });
+
+  final hoy = DateFormat('yyyy-MM-dd').format(
+    convertirHoraLocal(DateTime.now().toUtc()),
+  );
+
+  tareasStream = FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('tasks')
+      .where('date', isEqualTo: hoy)
+      .snapshots();
+}
+
 
   @override
   void dispose() {
@@ -82,6 +99,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return tz.TZDateTime.from(utc, madrid);
   }
   
+
+  Future<void> _restaurarEstadoTrabajo() async {
+  final prefs = await SharedPreferences.getInstance();
+  final startIso = prefs.getString('startTime');
+  final trabajandoGuardado = prefs.getBool('trabajando') ?? false;
+
+  if (trabajandoGuardado && startIso != null) {
+    final storedUtc = DateTime.tryParse(startIso);
+    if (storedUtc != null) {
+      final localStart = convertirHoraLocal(storedUtc); // Convertir de UTC a Europe/Madrid
+
+      setState(() {
+        startTime = localStart;
+        trabajando = true;
+        tiempoTrabajado = convertirHoraLocal(DateTime.now().toUtc()).difference(startTime!);
+      });
+
+      iniciarContador();
+    }
+  }
+}
+
+
    /// 1) Detecta ausencia y muestra opciones
   Future<void> _chequearAusencia() async {
     final ahora = convertirHoraLocal(DateTime.now().toUtc());
@@ -219,34 +259,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
   Future<String?> mostrarDialogoTrabajo() async {
-    final mensajeController = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Escribe lo que has hecho"),
-        content: TextField(
-          controller: mensajeController,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: "Ejemplo: Finalicé el informe de ventas...",
-          ),
+  final mensajeController = TextEditingController();
+
+  return showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true, // necesario para adaptar al teclado
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) {
+      return Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          top: 24,
+          left: 24,
+          right: 24,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text("Cancelar"),
-          ),
-          TextButton(
-            onPressed: () {
-              final mensaje = mensajeController.text.trim();
-              if (mensaje.isNotEmpty) Navigator.pop(context, mensaje);
-            },
-            child: const Text("Guardar y fichar salida"),
-          ),
-        ],
-      ),
-    );
-  }
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Escribe lo que has hecho",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: mensajeController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText: "Ejemplo: Finalicé el informe de ventas...",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  child: const Text("Cancelar"),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    final mensaje = mensajeController.text.trim();
+                    if (mensaje.isNotEmpty) {
+                      Navigator.pop(context, mensaje);
+                    }
+                  },
+                  child: const Text("Guardar y fichar salida"),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+
 
   Future<void> cargarNombreUsuario() async {
     final doc = await FirebaseFirestore.instance
@@ -379,6 +451,9 @@ Future<void> ficharEntrada() async {
 
   // 3) Sigue con el fichado normal
   startTime = ahora;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('startTime', startTime!.toIso8601String());
+  await prefs.setBool('trabajando', true);
   final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
   final docSnap = await userRef.get();
   if (!docSnap.exists) {
@@ -404,37 +479,44 @@ Future<void> ficharEntrada() async {
 }
 
   Future<void> ficharSalida() async {
-    final mensajeSalida = await mostrarDialogoTrabajo();
-    if (mensajeSalida == null) return;
+  final mensajeSalida = await mostrarDialogoTrabajo();
+  if (mensajeSalida == null) return;
 
-    final endTime = convertirHoraLocal(DateTime.now().toUtc());
-    final duration = endTime.difference(startTime!).inMinutes;
+  final endTime = convertirHoraLocal(DateTime.now().toUtc());
+  final duration = endTime.difference(startTime!).inMinutes;
 
-    final query = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('workSessions')
-        .where('endTime', isEqualTo: null)
-        .orderBy('startTime', descending: true)
-        .limit(1)
-        .get();
+  final query = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('workSessions')
+      .where('endTime', isEqualTo: null)
+      .orderBy('startTime', descending: true)
+      .limit(1)
+      .get();
 
-    if (query.docs.isNotEmpty) {
-      await query.docs.first.reference.update({
-        'endTime': endTime,
-        'duration': duration,
-        'workSummary': mensajeSalida,
-      });
-    }
-
-    detenerContador();
-    setState(() {
-      trabajando = false;
-      startTime = null;
-      tiempoTrabajado = Duration.zero;
+  if (query.docs.isNotEmpty) {
+    await query.docs.first.reference.update({
+      'endTime': endTime,
+      'duration': duration,
+      'workSummary': mensajeSalida,
     });
-    await cargarResumenTrabajo();
   }
+
+  // ✅ Limpia los datos guardados localmente
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('startTime');
+  await prefs.setBool('trabajando', false);
+
+  detenerContador();
+  setState(() {
+    trabajando = false;
+    startTime = null;
+    tiempoTrabajado = Duration.zero;
+  });
+
+  await cargarResumenTrabajo();
+}
+
 
   Future<void> cerrarSesion() async {
     detenerContador();
@@ -464,148 +546,149 @@ Future<void> ficharEntrada() async {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final texto = trabajando
-        ? 'Trabajando desde las ${DateFormat.Hm().format(startTime!)}'
-        : 'No estás trabajando';
+Widget build(BuildContext context) {
+  final texto = trabajando
+      ? 'Trabajando desde las ${DateFormat.Hm().format(startTime!)}'
+      : 'No estás trabajando';
 
-    final progresoDiario =
-        (minutosHoy / objetivoDiarioMinutos).clamp(0.0, 1.0);
-    final progresoSemanal =
-        (minutosSemana / objetivoSemanalMinutos).clamp(0.0, 1.0);
+  final progresoDiario =
+      (minutosHoy / objetivoDiarioMinutos).clamp(0.0, 1.0);
+  final progresoSemanal =
+      (minutosSemana / objetivoSemanalMinutos).clamp(0.0, 1.0);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F2),
-      appBar: AppBar(
-        title: const Text('Control de Horario'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_month),
-            tooltip: 'Ver mi horario',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ScheduleScreen(
-                    userId: userId,
-                    userName: nombreUsuario,
-                    readOnly: true,
-                 ),
+  return Scaffold(
+    resizeToAvoidBottomInset: true,
+    backgroundColor: const Color(0xFFF2F2F2),
+    appBar: AppBar(
+      title: const Text('Control de Horario'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.calendar_month),
+          tooltip: 'Ver mi horario',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ScheduleScreen(
+                  userId: userId,
+                  userName: nombreUsuario,
+                  readOnly: true,
                 ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar sesión',
-            onPressed: cerrarSesion,
-          ),
-        ],
-      ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          if (nombreUsuario != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12, left: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.green[300],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    nombreUsuario!.capitalize(),
-                    style: const TextStyle(
-                        fontSize: 16, color: Colors.white),
+              ),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.logout),
+          tooltip: 'Cerrar sesión',
+          onPressed: cerrarSesion,
+        ),
+      ],
+    ),
+    body: SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 30),
+        child: Column(
+          children: [
+            if (nombreUsuario != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12, left: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green[300],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      nombreUsuario!.capitalize(),
+                      style:
+                          const TextStyle(fontSize: 16, color: Colors.white),
+                    ),
                   ),
                 ),
               ),
-            ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Progreso diario (${(minutosHoy / 60).toStringAsFixed(1)}h / 8h)',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 6),
-                LinearProgressIndicator(
-                  value: progresoDiario,
-                  minHeight: 12,
-                  backgroundColor: Colors.grey[300],
-                  color: progresoDiario >= 1.0
-                      ? Colors.amber
-                      : Colors.green,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                if (progresoDiario >= 1.0)
-                  ScaleTransition(
-                    scale: CurvedAnimation(
-                      parent: _successController!,
-                      curve: Curves.easeOutBack,
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.only(top: 10),
-                      child: Center(
-                        child: Text(
-                          '🎉 ¡Objetivo cumplido!',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amber,
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Progreso diario (${(minutosHoy / 60).toStringAsFixed(1)}h / 8h)',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  LinearProgressIndicator(
+                    value: progresoDiario,
+                    minHeight: 12,
+                    backgroundColor: Colors.grey[300],
+                    color:
+                        progresoDiario >= 1.0 ? Colors.amber : Colors.green,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  if (progresoDiario >= 1.0)
+                    ScaleTransition(
+                      scale: CurvedAnimation(
+                        parent: _successController!,
+                        curve: Curves.easeOutBack,
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: Center(
+                          child: Text(
+                            '🎉 ¡Objetivo cumplido!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber,
+                            ),
                           ),
                         ),
                       ),
                     ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Progreso semanal (${(minutosSemana / 60).toStringAsFixed(1)}h / 40h)',
+                    style: const TextStyle(fontSize: 16),
                   ),
-                const SizedBox(height: 20),
-                Text(
-                  'Progreso semanal (${(minutosSemana / 60).toStringAsFixed(1)}h / 40h)',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 6),
-                LinearProgressIndicator(
-                  value: progresoSemanal,
-                  minHeight: 12,
-                  backgroundColor: Colors.grey[300],
-                  color: progresoSemanal >= 1.0
-                      ? Colors.blueAccent
-                      : Colors.indigo,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                if (progresoSemanal >= 1.0)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Center(
-                      child: Text(
-                        '💪 ¡Semana completada!',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
+                  const SizedBox(height: 6),
+                  LinearProgressIndicator(
+                    value: progresoSemanal,
+                    minHeight: 12,
+                    backgroundColor: Colors.grey[300],
+                    color: progresoSemanal >= 1.0
+                        ? Colors.blueAccent
+                        : Colors.indigo,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  if (progresoSemanal >= 1.0)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 10),
+                      child: Center(
+                        child: Text(
+                          '💪 ¡Semana completada!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 30),
-          Text(
-            texto,
-            style: const TextStyle(
-                fontSize: 18, fontStyle: FontStyle.italic),
-          ),
-          const SizedBox(height: 40),
-          Center(
-            child: GestureDetector(
+            const SizedBox(height: 30),
+            Text(
+              texto,
+              style: const TextStyle(
+                  fontSize: 18, fontStyle: FontStyle.italic),
+            ),
+            const SizedBox(height: 40),
+            GestureDetector(
               onTap: trabajando ? ficharSalida : ficharEntrada,
               child: Container(
                 width: 220,
@@ -613,8 +696,8 @@ Future<void> ficharEntrada() async {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white,
-                  border: Border.all(
-                      color: Colors.black.withOpacity(0.7), width: 4),
+                  border:
+                      Border.all(color: Colors.black.withOpacity(0.7), width: 4),
                   boxShadow: const [
                     BoxShadow(
                       color: Colors.black26,
@@ -632,19 +715,167 @@ Future<void> ficharEntrada() async {
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 30),
-          Text(
-            trabajando
-                ? formatearDuracion(tiempoTrabajado)
-                : '00:00:00',
-            style: const TextStyle(
-                fontSize: 24, fontWeight: FontWeight.w500),
-          ),
-        ],
+            const SizedBox(height: 30),
+            Text(
+              trabajando ? formatearDuracion(tiempoTrabajado) : '00:00:00',
+              style: const TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.w500),
+            ),
+
+            const SizedBox(height: 30),
+
+            // 🔽 SECCIÓN DE TAREAS 🔽
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Flexible(
+                        child: Text(
+                          '📝 Tareas para hoy',
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle,
+                            color: Colors.blueAccent, size: 28),
+                        tooltip: 'Añadir tarea',
+                        onPressed: () async {
+                          final controller = TextEditingController();
+                          await showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              title: const Text('Nueva tarea'),
+                              content: SingleChildScrollView(
+                                child: TextField(
+                                  controller: controller,
+                                  autofocus: true,
+                                  decoration: InputDecoration(
+                                    hintText: 'Ej. Llamar al cliente...',
+                                    border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  child: const Text('Cancelar'),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                                ElevatedButton(
+                                  child: const Text('Guardar'),
+                                  onPressed: () async {
+                                    final text = controller.text.trim();
+                                    if (text.isNotEmpty) {
+                                      final dateKey = DateFormat('yyyy-MM-dd')
+                                          .format(convertirHoraLocal(
+                                              DateTime.now().toUtc()));
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(userId)
+                                          .collection('tasks')
+                                          .add({
+                                        'title': text,
+                                        'done': false,
+                                        'date': dateKey,
+                                        'createdAt':
+                                            FieldValue.serverTimestamp(),
+                                      });
+                                    }
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: tareasStream,
+
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');
+                      }
+
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      final tasks = snapshot.data!.docs;
+                      if (tasks.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text('🎉 No hay tareas pendientes.'),
+                        );
+                      }
+
+                      return Column(
+                        children: tasks.map((taskDoc) {
+                          final data =
+                              taskDoc.data() as Map<String, dynamic>;
+                          final title = data['title'] ?? 'Sin título';
+                          final done = data['done'] ?? false;
+
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            margin:
+                                const EdgeInsets.symmetric(vertical: 6),
+                            elevation: 2,
+                            child: CheckboxListTile(
+                              value: done,
+                              title: Text(
+                                title,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                                style: TextStyle(
+                                  decoration: done
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  fontWeight: done
+                                      ? FontWeight.w400
+                                      : FontWeight.w600,
+                                  color: done
+                                      ? Colors.grey
+                                      : Colors.black,
+                                ),
+                              ),
+                              activeColor: Colors.green,
+                              onChanged: (value) {
+                                taskDoc.reference
+                                    .update({'done': value});
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 extension StringCasingExtension on String {
