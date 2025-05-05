@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:intl/date_symbol_data_local.dart';    // ← Import necesario
+import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
@@ -8,17 +8,20 @@ import 'screens/admin_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 AÑADIDO
 import 'theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 👇 Previene el MissingPluginException en Flutter Web
+  await SharedPreferences.getInstance();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Inicializar la data de fechas/lenguajes para Intl
   await initializeDateFormatting('es_ES', null);
-  // si quieres todas las locales, en lugar de 'es_ES' puedes usar initializeDateFormatting()
 
   runApp(const MyApp());
 }
@@ -31,7 +34,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'App Fichaje',
       theme: AppTheme.lightTheme,
-      home: const SplashScreen(), // Se inicia en el SplashScreen
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -52,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToAuth() async {
-    await Future.delayed(const Duration(seconds: 2)); // Tiempo de animación
+    await Future.delayed(const Duration(seconds: 2));
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const AuthWrapper()),
     );
@@ -64,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: Colors.white,
       body: Center(
         child: Lottie.asset(
-          'assets/lottie/splash_animation.json', // Ruta del archivo JSON
+          'assets/lottie/splash_animation.json',
           width: 200,
           height: 200,
           fit: BoxFit.contain,
@@ -91,7 +94,7 @@ class AuthWrapper extends StatelessWidget {
         return const HomeScreen();
       }
     } catch (e) {
-      return const LoginScreen(); // Por si falla Firestore
+      return const LoginScreen();
     }
   }
 
@@ -112,7 +115,8 @@ class AuthWrapper extends StatelessWidget {
             builder: (context, futureSnapshot) {
               if (futureSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()));
+                  body: Center(child: CircularProgressIndicator()),
+                );
               }
               return futureSnapshot.data ?? const LoginScreen();
             },
