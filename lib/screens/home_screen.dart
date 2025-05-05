@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
-import 'dart:html' as html;
 import 'cross_platform_storage.dart';
 
 // Flutter core

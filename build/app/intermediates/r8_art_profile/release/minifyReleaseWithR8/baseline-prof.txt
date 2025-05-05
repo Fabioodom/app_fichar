@@ -643,6 +643,8 @@ HSPLd2/x;->e(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 HSPLd2/x;->g(Ljava/lang/StringBuilder;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 HSPLd2/x;->j(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 HSPLd2/x;->i(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+LD/k;
+HSPLD/k;-><init>(I)V
 HSPLo1/Q;-><init>(I)V
 HSPLU/I;-><init>(I)V
 Lb/v;

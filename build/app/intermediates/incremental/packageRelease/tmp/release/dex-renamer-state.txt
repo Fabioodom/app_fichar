@@ -1,4 +1,4 @@
-#Wed Apr 30 15:41:18 CEST 2025
+#Mon May 05 09:41:34 CEST 2025
 base.0=C\:\\Users\\fabio\\Documents\\Flutter App\\fabi\\appFichar\\app_fichar\\build\\app\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
 path.0=classes.dex
 renamed.0=classes.dex
