@@ -104,14 +104,13 @@ void initState() {
   
 
   Future<void> _restaurarEstadoTrabajo() async {
-  final prefs = await SharedPreferences.getInstance();
-  final startIso = prefs.getString('startTime');
-  final trabajandoGuardado = prefs.getBool('trabajando') ?? false;
+  final startIso = await CrossPlatformStorage.getString('startTime');
+  final trabajandoGuardado = await CrossPlatformStorage.getBool('trabajando');
 
   if (trabajandoGuardado && startIso != null) {
     final storedUtc = DateTime.tryParse(startIso);
     if (storedUtc != null) {
-      final localStart = convertirHoraLocal(storedUtc); // Convertir de UTC a Europe/Madrid
+      final localStart = convertirHoraLocal(storedUtc); // UTC → Europe/Madrid
 
       setState(() {
         startTime = localStart;
@@ -120,9 +119,13 @@ void initState() {
       });
 
       iniciarContador();
+      print('✅ Estado restaurado correctamente desde almacenamiento cruzado.');
     }
+  } else {
+    print('ℹ️ No se detectó sesión activa al restaurar.');
   }
 }
+
 
 
    /// 1) Detecta ausencia y muestra opciones
