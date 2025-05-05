@@ -422,59 +422,41 @@ Future<bool> _askJustificante() async {
 
 
 /// Modifica tu ficharEntrada() así:
- // asegúrate de importar esto para usar kIsWeb
-
 Future<void> ficharEntrada() async {
   final ahora = convertirHoraLocal(DateTime.now().toUtc());
   final workDate = DateFormat('yyyy-MM-dd').format(ahora);
 
-  print('⏰ Intentando fichar entrada a las $ahora');
+  // 1) Obtener horario previsto
+  final schedDoc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('schedule')
+      .doc(workDate)
+      .get();
 
-  if (!kIsWeb) {
-    // Lógica solo para móvil: comprobación de horario y justificante
-    try {
-      final schedDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('schedule')
-          .doc(workDate)
-          .get();
+  if (schedDoc.exists) {
+    final startStr = schedDoc.data()?['start'] as String?;
+    if (startStr != null) {
+      final parts = startStr.split(':');
+      final sh = int.tryParse(parts[0]) ?? 0;
+      final sm = int.tryParse(parts[1]) ?? 0;
+      final scheduledStart = DateTime(ahora.year, ahora.month, ahora.day, sh, sm);
 
-      if (schedDoc.exists) {
-        final startStr = schedDoc.data()?['start'] as String?;
-        if (startStr != null) {
-          final parts = startStr.split(':');
-          final sh = int.tryParse(parts[0]) ?? 0;
-          final sm = int.tryParse(parts[1]) ?? 0;
-          final scheduledStart = DateTime(
-              ahora.year, ahora.month, ahora.day, sh, sm);
-
-          if (ahora.isAfter(scheduledStart.add(const Duration(minutes: 15)))) {
-            final ok = await _askJustificante();
-            if (!ok) {
-              print('🛑 No se justificó la entrada tardía.');
-              return;
-            }
-          }
-        }
+      // 2) Si pasaron 15 minutos y no has fichado, pide justificante
+      if (ahora.isAfter(scheduledStart.add(const Duration(minutes: 15)))) {
+        final ok = await _askJustificante();
+        if (!ok) return; // sin justificante, no dejamos fichar
       }
-    } catch (e) {
-      print('⚠️ Error al verificar el horario: $e');
     }
-  } else {
-    print('🌐 Ejecutando en web, se omite la validación de horario.');
   }
 
-  // Resto del fichado común a todas las plataformas
+  // 3) Sigue con el fichado normal
   startTime = ahora;
-
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('startTime', startTime!.toIso8601String());
   await prefs.setBool('trabajando', true);
-
   final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
   final docSnap = await userRef.get();
-
   if (!docSnap.exists) {
     final email = FirebaseAuth.instance.currentUser?.email ?? 'desconocido';
     final provisionalName = email.split('@').first;
@@ -495,10 +477,7 @@ Future<void> ficharEntrada() async {
 
   iniciarContador();
   setState(() => trabajando = true);
-
-  print('✅ Fichaje de entrada completado.');
 }
-
 
   Future<void> ficharSalida() async {
   final mensajeSalida = await mostrarDialogoTrabajo();
