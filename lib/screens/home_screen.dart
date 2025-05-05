@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'dart:html' as html;
+import 'cross_platform_storage.dart';
 
 // Flutter core
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -426,35 +428,37 @@ Future<void> ficharEntrada() async {
   final ahora = convertirHoraLocal(DateTime.now().toUtc());
   final workDate = DateFormat('yyyy-MM-dd').format(ahora);
 
-  // 1) Obtener horario previsto
-  final schedDoc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .collection('schedule')
-      .doc(workDate)
-      .get();
+  // 1) Obtener horario previsto (solo si NO es web)
+  if (!kIsWeb) {
+    final schedDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('schedule')
+        .doc(workDate)
+        .get();
 
-  if (schedDoc.exists) {
-    final startStr = schedDoc.data()?['start'] as String?;
-    if (startStr != null) {
-      final parts = startStr.split(':');
-      final sh = int.tryParse(parts[0]) ?? 0;
-      final sm = int.tryParse(parts[1]) ?? 0;
-      final scheduledStart = DateTime(ahora.year, ahora.month, ahora.day, sh, sm);
+    if (schedDoc.exists) {
+      final startStr = schedDoc.data()?['start'] as String?;
+      if (startStr != null) {
+        final parts = startStr.split(':');
+        final sh = int.tryParse(parts[0]) ?? 0;
+        final sm = int.tryParse(parts[1]) ?? 0;
+        final scheduledStart = DateTime(ahora.year, ahora.month, ahora.day, sh, sm);
 
-      // 2) Si pasaron 15 minutos y no has fichado, pide justificante
-      if (ahora.isAfter(scheduledStart.add(const Duration(minutes: 15)))) {
-        final ok = await _askJustificante();
-        if (!ok) return; // sin justificante, no dejamos fichar
+        if (ahora.isAfter(scheduledStart.add(const Duration(minutes: 15)))) {
+          final ok = await _askJustificante();
+          if (!ok) return;
+        }
       }
     }
   }
 
-  // 3) Sigue con el fichado normal
+  // 2) Guardar estado local
   startTime = ahora;
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('startTime', startTime!.toIso8601String());
-  await prefs.setBool('trabajando', true);
+  await CrossPlatformStorage.setString('startTime', startTime!.toIso8601String());
+  await CrossPlatformStorage.setBool('trabajando', true);
+
+  // 3) Guardar en Firestore
   final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
   final docSnap = await userRef.get();
   if (!docSnap.exists) {
@@ -478,6 +482,7 @@ Future<void> ficharEntrada() async {
   iniciarContador();
   setState(() => trabajando = true);
 }
+
 
   Future<void> ficharSalida() async {
   final mensajeSalida = await mostrarDialogoTrabajo();
@@ -503,10 +508,9 @@ Future<void> ficharEntrada() async {
     });
   }
 
-  // ✅ Limpia los datos guardados localmente
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove('startTime');
-  await prefs.setBool('trabajando', false);
+  // Limpia el estado local
+  await CrossPlatformStorage.remove('startTime');
+  await CrossPlatformStorage.setBool('trabajando', false);
 
   detenerContador();
   setState(() {
@@ -517,6 +521,7 @@ Future<void> ficharEntrada() async {
 
   await cargarResumenTrabajo();
 }
+
 
 
   Future<void> cerrarSesion() async {
