@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/drawable-ldpi-v4/ic_call_answer_video.png",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-core-1.13.1-15:/drawable-ldpi-v4/ic_call_answer_video.png"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/drawable-ldpi-v4/ic_call_answer_video_low.png",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-core-1.13.1-15:/drawable-ldpi-v4/ic_call_answer_video_low.png"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/drawable-ldpi-v4/ic_call_answer.png",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-core-1.13.1-15:/drawable-ldpi-v4/ic_call_answer.png"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/drawable-ldpi-v4/ic_call_decline_low.png",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-core-1.13.1-15:/drawable-ldpi-v4/ic_call_decline_low.png"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/drawable-ldpi-v4/ic_call_decline.png",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-core-1.13.1-15:/drawable-ldpi-v4/ic_call_decline.png"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/drawable-ldpi-v4/ic_call_answer_low.png",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-core-1.13.1-15:/drawable-ldpi-v4/ic_call_answer_low.png"
+    }
+]

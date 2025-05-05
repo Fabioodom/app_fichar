@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/animator/fragment_close_enter.xml",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-fragment-1.7.1-9:/animator/fragment_close_enter.xml"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/animator/fragment_close_exit.xml",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-fragment-1.7.1-9:/animator/fragment_close_exit.xml"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/animator/fragment_fade_enter.xml",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-fragment-1.7.1-9:/animator/fragment_fade_enter.xml"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/animator/fragment_fade_exit.xml",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-fragment-1.7.1-9:/animator/fragment_fade_exit.xml"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/animator/fragment_open_exit.xml",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-fragment-1.7.1-9:/animator/fragment_open_exit.xml"
+    },
+    {
+        "merged": "com.sidlatau.flutteremailsender.flutter_email_sender-release-29:/animator/fragment_open_enter.xml",
+        "source": "com.sidlatau.flutteremailsender.flutter_email_sender-fragment-1.7.1-9:/animator/fragment_open_enter.xml"
+    }
+]
