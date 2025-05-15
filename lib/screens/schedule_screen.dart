@@ -187,15 +187,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 d.year == _selectedDay.year &&
                 d.month == _selectedDay.month &&
                 d.day == _selectedDay.day,
-            onDaySelected: widget.readOnly
-                ? null
-                : (d, f) async {
-                    setState(() {
-                      _selectedDay = d;
-                      _focusedDay = f;
-                    });
-                    await _loadForDate(d);
-                  },
+            onDaySelected: (d, f) async {
+  setState(() {
+    _selectedDay = d;
+    _focusedDay = f;
+  });
+  await _loadForDate(d);
+},
+
             calendarBuilders: CalendarBuilders(
               defaultBuilder: (ctx, day, focused) {
                 if (_isVacation(day)) {
